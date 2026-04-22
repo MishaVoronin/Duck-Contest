@@ -7,8 +7,8 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID, ENUM as PG_ENUM
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-Base = DeclarativeBase()
-
+class Base(DeclarativeBase):
+    pass
 # Нативные PostgreSQL ENUM
 UserStatusEnum = PG_ENUM("user", "curator", "admin", "banned", name="user_status", create_type=True)
 SolutionStatusEnum = PG_ENUM("OK", "TL", "ML", "CE", "RE", name="solution_status", create_type=True)
@@ -42,8 +42,8 @@ class Contest(Base):
     slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     curator: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
     is_active: Mapped[bool | None] = mapped_column(
-        Boolean, nullable=True, server_default=func.true()
-    )
+    Boolean, nullable=True, server_default=text("true")  
+)
 
     curator_user: Mapped[User] = relationship("User", back_populates="curated_contests")
     tasks: Mapped[list["Task"]] = relationship("Task", back_populates="contest")
