@@ -4,10 +4,10 @@ deps:
 db-up:
 	docker compose up -d db
 
-migrate: 
+migration: 
 	uv run alembic -c src/database/alembic.ini revision --autogenerate -m "initial models"
 
-migrate-up: 
+migrate: 
 	uv run alembic -c src/database/alembic.ini upgrade head
 
 up:
