@@ -6,16 +6,17 @@ from sqlalchemy import String, Text, Boolean, DateTime, ForeignKey, func, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-# ✅ Базовый класс
+
 class Base(DeclarativeBase):
     pass
 
-# ✅ Python Enum классы (хранятся как VARCHAR в PostgreSQL)
+
 class UserStatusEnum(str, enum.Enum):
     USER = "user"
     CURATOR = "curator"
     ADMIN = "admin"
     BANNED = "banned"
+
 
 class SolutionStatusEnum(str, enum.Enum):
     OK = "OK"
@@ -23,6 +24,7 @@ class SolutionStatusEnum(str, enum.Enum):
     ML = "ML"
     CE = "CE"
     RE = "RE"
+
 
 class User(Base):
     __tablename__ = "users"
@@ -39,10 +41,10 @@ class User(Base):
     curated_contests: Mapped[list["Contest"]] = relationship(
         "Contest", back_populates="curator_user", foreign_keys="[Contest.curator]"
     )
-    solutions: Mapped[list["Solution"]] = relationship("Solution", back_populates="user")
-    contest_accesses: Mapped[list["ContestAccess"]] = relationship(
-        "ContestAccess", back_populates="user"
+    solutions: Mapped[list["Solution"]] = relationship(
+        "Solution", back_populates="user"
     )
+
 
 class Contest(Base):
     __tablename__ = "contest"
@@ -57,10 +59,7 @@ class Contest(Base):
     )
 
     curator_user: Mapped[User] = relationship("User", back_populates="curated_contests")
-    tasks: Mapped[list["Task"]] = relationship("Task", back_populates="contest")
-    access_records: Mapped[list["ContestAccess"]] = relationship(
-        "ContestAccess", back_populates="contest"
-    )
+
 
 class Task(Base):
     __tablename__ = "task"
@@ -75,7 +74,10 @@ class Task(Base):
     test_file_path: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     contest: Mapped[Contest] = relationship("Contest", back_populates="tasks")
-    solutions: Mapped[list["Solution"]] = relationship("Solution", back_populates="task")
+    solutions: Mapped[list["Solution"]] = relationship(
+        "Solution", back_populates="task"
+    )
+
 
 class Solution(Base):
     __tablename__ = "solution"
@@ -91,12 +93,11 @@ class Solution(Base):
     submitted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
-    status: Mapped[SolutionStatusEnum | None] = mapped_column(
-        String(10), nullable=True
-    )
+    status: Mapped[SolutionStatusEnum | None] = mapped_column(String(10), nullable=True)
 
     user: Mapped[User] = relationship("User", back_populates="solutions")
     task: Mapped[Task] = relationship("Task", back_populates="solutions")
+
 
 class ContestAccess(Base):
     __tablename__ = "contest_access"
@@ -106,9 +107,7 @@ class ContestAccess(Base):
     contest_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("contest.id"), nullable=False
     )
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id"), nullable=False
-    )
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     contest: Mapped[Contest] = relationship("Contest", back_populates="access_records")
     user: Mapped[User] = relationship("User", back_populates="contest_accesses")
