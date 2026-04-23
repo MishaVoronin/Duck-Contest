@@ -20,7 +20,7 @@ SolutionStatusEnum = PG_ENUM(
 
 
 class User(Base):
-    __tablename__ = "users"
+    __tablename__ = "user"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
