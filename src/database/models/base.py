@@ -34,8 +34,8 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     login: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String(50), nullable=False)
-    status: Mapped[UserStatusEnum | None] = mapped_column(
-        String(20), nullable=True, server_default=text("'user'")
+    status: Mapped[UserStatusEnum] = mapped_column(
+        String(20), nullable=False, server_default=text("'user'")
     )
 
 
@@ -47,8 +47,8 @@ class Contest(Base):
     name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     curator: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
-    is_active: Mapped[bool | None] = mapped_column(
-        Boolean, nullable=True, server_default=text("true")
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("true")
     )
 
 
@@ -57,13 +57,13 @@ class Task(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
-    contest_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("contest.id"), nullable=True
+    contest_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("contest.id"), nullable=False
     )
-    slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    name: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    task_text: Mapped[str | None] = mapped_column(Text, nullable=True)
-    test_file_path: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    slug: Mapped[str] = mapped_column(String(255), unique=True)
+    name: Mapped[str] = mapped_column(String(50), nullable=False)
+    task_text: Mapped[str] = mapped_column(Text, nullable=False)
+    test_file_path: Mapped[str] = mapped_column(String(200), nullable=False)
 
 
 class Solution(Base):
@@ -71,16 +71,16 @@ class Solution(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
-    user_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("user.id"), nullable=True
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("user.id"), nullable=False
     )
-    task_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("task.id"), nullable=True
+    task_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("task.id"), nullable=False
     )
     submitted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
-    status: Mapped[SolutionStatusEnum | None] = mapped_column(String(10), nullable=True)
+    status: Mapped[SolutionStatusEnum] = mapped_column(String(10), nullable=False)
 
 
 class ContestAccess(Base):
