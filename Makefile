@@ -24,3 +24,6 @@ format:
 
 check:
 	uv run ruff check .
+
+main:
+	docker-compose exec backend uv run python ./src/main.py
