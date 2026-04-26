@@ -3,9 +3,9 @@ from datetime import datetime
 import uuid
 import enum
 from sqlalchemy import String, Text, Boolean, DateTime, ForeignKey, func, text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-
+from typing import Any 
 
 class Base(DeclarativeBase):
     pass
@@ -31,9 +31,9 @@ class User(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
-    name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
-    login: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
-    password: Mapped[str] = mapped_column(String(50), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    login: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    password: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[UserStatusEnum] = mapped_column(
         String(20), nullable=False, server_default=text("'user'")
     )
@@ -44,7 +44,7 @@ class Contest(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
-    name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     curator: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
     is_active: Mapped[bool] = mapped_column(
@@ -61,9 +61,9 @@ class Task(Base):
         ForeignKey("contest.id"), nullable=False
     )
     slug: Mapped[str] = mapped_column(String(255), unique=True)
-    name: Mapped[str] = mapped_column(String(50), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
     task_text: Mapped[str] = mapped_column(Text, nullable=False)
-    test_file_path: Mapped[str] = mapped_column(String(200), nullable=False)
+    test: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
 
 
 class Solution(Base):
@@ -77,7 +77,7 @@ class Solution(Base):
     task_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("task.id"), nullable=False
     )
-    submitted_at: Mapped[datetime | None] = mapped_column(
+    submitted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
     status: Mapped[SolutionStatusEnum] = mapped_column(String(10), nullable=False)
