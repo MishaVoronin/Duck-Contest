@@ -3,9 +3,9 @@ from datetime import datetime
 import uuid
 import enum
 from sqlalchemy import String, Text, Boolean, DateTime, ForeignKey, func, text
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-
+from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from typing import Any 
 
 class Base(DeclarativeBase):
     pass
@@ -27,22 +27,15 @@ class SolutionStatusEnum(str, enum.Enum):
 
 
 class User(Base):
-    __tablename__ = "users"
+    __tablename__ = "user"
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
-    name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
-    login: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
-    password: Mapped[str] = mapped_column(String(50), nullable=False)
-    status: Mapped[UserStatusEnum | None] = mapped_column(
-        String(20), nullable=True, server_default=text("'user'")
-    )
-
-    curated_contests: Mapped[list["Contest"]] = relationship(
-        "Contest", back_populates="curator_user", foreign_keys="[Contest.curator]"
-    )
-    solutions: Mapped[list["Solution"]] = relationship(
-        "Solution", back_populates="user"
+    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    login: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    password: Mapped[str] = mapped_column(String(255), nullable=False)
+    status: Mapped[UserStatusEnum] = mapped_column(
+        String(20), nullable=False, server_default=text("'user'")
     )
 
 
@@ -51,14 +44,12 @@ class Contest(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
-    name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    curator: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
-    is_active: Mapped[bool | None] = mapped_column(
-        Boolean, nullable=True, server_default=text("true")
+    curator: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("true")
     )
-
-    curator_user: Mapped[User] = relationship("User", back_populates="curated_contests")
 
 
 class Task(Base):
@@ -66,17 +57,13 @@ class Task(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
-    contest_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("contest.id"), nullable=True
+    contest_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("contest.id"), nullable=False
     )
-    name: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    task_text: Mapped[str | None] = mapped_column(Text, nullable=True)
-    test_file_path: Mapped[str | None] = mapped_column(String(200), nullable=True)
-
-    contest: Mapped[Contest] = relationship("Contest", back_populates="tasks")
-    solutions: Mapped[list["Solution"]] = relationship(
-        "Solution", back_populates="task"
-    )
+    slug: Mapped[str] = mapped_column(String(255), unique=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    task_text: Mapped[str] = mapped_column(Text, nullable=False)
+    test: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
 
 
 class Solution(Base):
@@ -84,19 +71,16 @@ class Solution(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
-    user_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("users.id"), nullable=True
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("user.id"), nullable=False
     )
-    task_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("task.id"), nullable=True
+    task_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("task.id"), nullable=False
     )
-    submitted_at: Mapped[datetime | None] = mapped_column(
+    submitted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
-    status: Mapped[SolutionStatusEnum | None] = mapped_column(String(10), nullable=True)
-
-    user: Mapped[User] = relationship("User", back_populates="solutions")
-    task: Mapped[Task] = relationship("Task", back_populates="solutions")
+    status: Mapped[SolutionStatusEnum] = mapped_column(String(10), nullable=False)
 
 
 class ContestAccess(Base):
@@ -107,7 +91,4 @@ class ContestAccess(Base):
     contest_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("contest.id"), nullable=False
     )
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
-
-    contest: Mapped[Contest] = relationship("Contest", back_populates="access_records")
-    user: Mapped[User] = relationship("User", back_populates="contest_accesses")
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
