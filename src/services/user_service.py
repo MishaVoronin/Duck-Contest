@@ -1,39 +1,52 @@
-from crud import user
+from fastapi import APIRouter, Request, Form, Depends,HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from crud.user import get_user_by_id, get_user_by_login,create_user
+from crud.refresh_token import create_refresh_token
 from sqlalchemy import select
-from database.models.base import User
+from database.models.base import User, RefreshToken
+from database.core.db import get_db
 import scripts.auth as auth
 from pydantic import BaseModel, Field, validator
 from typing import Annotated
+from datetime import datetime, timedelta, timezone
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="user/login", auto_error=False)
 
-class UserResponse(BaseModel):
-    id: uuid.UUID
-    name: str
-    login: str
-    #created_at: datetime
-    #last_login: Optional[datetime]
+async def get_current_user(db, token: str = Depends(oauth2_scheme)) -> User:
+    """Получение текущего пользователя из токена"""
+    user_id = await auth.get_user_id_from_token(token)
+    payload = await auth.decode_token(token)
+    if payload.get("type") != "access":
+        raise HTTPException(status_code=401, detail="Invalid token type")
+    return await get_user_by_id(db,user_id)
 
-    class Config:
-        from_attributes = True
+def require_status(allowed_statuses: List[UserStatusEnum]):
+    """Декоратор для проверки статуса пользователя"""
+    async def dependency(current_user: User|None = Depends(get_current_user)):
+        if current_user is None or current_user.status not in allowed_statuses:
+            raise HTTPException(status_code=403,detail=f"Access denied. Required status: {[s.value for s in allowed_statuses]}")
+        return current_user
+    return dependency
 
-class UserUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=2, max_length=255)
-    status: Optional[UserStatusEnum] = None
 
-class TokenResponse(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-    expires_in: int = auth.ACCESS_TOKEN_EXPIRE_MINUTES * 60
-
-class RefreshTokenRequest(BaseModel):
-    refresh_token: str
-
-class ChangePasswordRequest(BaseModel):
-    old_password: str
-    new_password: str = Field(..., min_length=6)
-
-async def register_user(db: AsyncSession,name: str, login: str, password: str) -> User|None:
-    if not await user.get_user_by_login(db,login):
-        return await user.create_user(db, User(name=name,login=login, password=password))
+async def register_user(db: AsyncSession, name: str, login: str, password: str) -> User|None:
+    if not await get_user_by_login(db,login):
+        return await create_user(db, User(name=name,login=login, password=await auth.hash_password(password)))
     return None
+
+async def login_user(db:AsyncSession,login: str, password: str) -> RedirectResponse | HTMLResponse:
+    user=await get_user_by_login(db, login)
+    if not user or not await  auth.verify_password(password, user.password):
+        raise HTTPException(status_code=401, detail="Invalid login or password")
+    result = RedirectResponse(url='login', status_code=status.HTTP_303_SEE_OTHER)
+    refresh = await auth.create_refresh_token(user.id)
+    await create_refresh_token(db, RefreshToken(
+        user_id=user.id,
+        token=refresh,
+        expires_at=datetime.utcnow() + timedelta(days=auth.REFRESH_TOKEN_EXPIRE_DAYS),
+    ))
+    result.set_cookie(key="access",value=await auth.create_access_token(user.id), max_age=auth.ACCESS_TOKEN_EXPIRE_MINUTES * 60, secure=True, httponly=True, samesite="lax")
+    result.set_cookie(key="refresh",value=refresh, max_age=timedelta(days=auth.REFRESH_TOKEN_EXPIRE_DAYS), secure=True, httponly=True, samesite="lax")
+
+    return result

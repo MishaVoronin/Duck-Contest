@@ -6,8 +6,8 @@ from database.models.base import RefreshToken
 from typing import Tuple
 
 
-async def create_refresh_token(db: AsyncSession, token: RefreshToken):
+async def create_refresh_token(db: AsyncSession, token: RefreshToken) -> RefreshToken:
     db.add(token)
     await db.commit()
-    await db.refresh(new_user)
+    await db.refresh(token)
     return token

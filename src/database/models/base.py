@@ -27,7 +27,7 @@ class SolutionStatusEnum(str, enum.Enum):
 
 
 class User(Base):
-    __tablename__ = "user"
+    __tablename__ = "users"
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
@@ -37,6 +37,9 @@ class User(Base):
     status: Mapped[UserStatusEnum] = mapped_column(
         String(20), nullable=False, server_default=text("'user'")
     )
+    @property
+    def is_banned(self) -> bool:
+        return self.status == UserStatusEnum.BANNED
 
 class RefreshToken(Base):
     __tablename__ = "refresh_token"
@@ -44,10 +47,10 @@ class RefreshToken(Base):
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
     token = mapped_column(String, unique=True, index=True, nullable=False)
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
-    expires_at = mapped_column(DateTime, nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     is_revoked = mapped_column(Boolean, default=False)
-    created_at = mapped_column(DateTime, default=func.utcnow())
+    created_at = mapped_column(DateTime, server_default=func.utcnow())
     revoked_at = mapped_column(DateTime, nullable=True)
 
 
@@ -59,7 +62,7 @@ class Contest(Base):
     )
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    curator: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
+    curator: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("true")
     )
@@ -85,7 +88,7 @@ class Solution(Base):
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("user.id"), nullable=False
+        ForeignKey("users.id"), nullable=False
     )
     task_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("task.id"), nullable=False
@@ -104,4 +107,4 @@ class ContestAccess(Base):
     contest_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("contest.id"), nullable=False
     )
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
