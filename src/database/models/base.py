@@ -5,7 +5,7 @@ import enum
 from sqlalchemy import String, Text, Boolean, DateTime, ForeignKey, func, text
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from typing import Any 
+from typing import Any
 
 class Base(DeclarativeBase):
     pass
@@ -37,6 +37,19 @@ class User(Base):
     status: Mapped[UserStatusEnum] = mapped_column(
         String(20), nullable=False, server_default=text("'user'")
     )
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_token"
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
+    )
+    token = mapped_column(String, unique=True, index=True, nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
+    expires_at = mapped_column(DateTime, nullable=False)
+    is_revoked = mapped_column(Boolean, default=False)
+    created_at = mapped_column(DateTime, default=func.utcnow())
+    revoked_at = mapped_column(DateTime, nullable=True)
+
 
 
 class Contest(Base):
