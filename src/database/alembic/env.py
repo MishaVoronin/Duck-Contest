@@ -3,12 +3,12 @@ import sys
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from alembic import context
+
 # Если проект лежит в src/, добавляем её в PYTHONPATH динамически
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from database.core.config import settings
 from database.models.base import Base
-import database.models  # noqa: F401
 
 config = context.config
 

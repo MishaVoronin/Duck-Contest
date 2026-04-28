@@ -2,34 +2,41 @@ import os
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 import uuid
+
 SECRET_KEY = os.getenv("SECRET_KEY", "very_hard_secret_key")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 15
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
 async def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
+
 async def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
+
 
 async def create_access_token(user_id: uuid.UUID) -> str:
     to_encode = {
         "sub": str(user_id),
         "type": "access",
-        "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     }
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
 
 async def create_refresh_token(user_id: uuid.UUID) -> str:
     to_encode = {
         "sub": str(user_id),
         "type": "refresh",
-        "exp": datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+        "exp": datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
     }
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
 
 async def decode_token(token: str) -> dict:
     try:
@@ -40,6 +47,7 @@ async def decode_token(token: str) -> dict:
     except JWTError as e:
         raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
 
+
 async def get_user_id_from_token(token: str) -> uuid.UUID:
     payload = await decode_token(token)
     user_id_str = payload.get("sub")
@@ -48,4 +56,6 @@ async def get_user_id_from_token(token: str) -> uuid.UUID:
     try:
         return uuid.UUID(user_id_str)
     except ValueError:
-        raise HTTPException(status_code=401, detail="Invalid token: invalid user id format")
+        raise HTTPException(
+            status_code=401, detail="Invalid token: invalid user id format"
+        )
