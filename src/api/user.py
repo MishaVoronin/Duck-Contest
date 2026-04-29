@@ -31,7 +31,7 @@ async def _login(
     request: Request = None,
     db: AsyncSession = Depends(get_db),
 ):
-    #print(await get_current_user(db, request.cookies["access"]))
+    # print(await get_current_user(db, request.cookies["access"]))
     await get_current_user(db)
     return await login_user(db, login, password)
 

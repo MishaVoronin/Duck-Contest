@@ -13,7 +13,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="user/login", auto_error=False)
 
 async def get_current_user(db, token: str = Depends(oauth2_scheme)) -> User:
     """Получение текущего пользователя из токена"""
-    if not isinstance(token,str):
+    if not isinstance(token, str):
         return None
     user_id = await auth.get_user_id_from_token(token)
     payload = await auth.decode_token(token)
