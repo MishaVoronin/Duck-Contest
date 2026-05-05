@@ -32,7 +32,7 @@ class User(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
-    name: Mapped[str] = mapped_column(String(255), unique=False, nullable=False)
+    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     login: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[UserStatusEnum] = mapped_column(
@@ -66,8 +66,9 @@ class Contest(Base):
     )
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    curator: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
+    curator_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
     is_active: Mapped[bool] = mapped_column(default=True, server_default="true")
+    is_public: Mapped[bool] = mapped_column(default=True, server_default="true")
 
 
 class Task(Base):
@@ -78,9 +79,9 @@ class Task(Base):
     contest_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("contest.id"), nullable=False
     )
-    slug: Mapped[str] = mapped_column(String(255), unique=True)
+    slug: Mapped[str] = mapped_column(String(255))
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    task_text: Mapped[str] = mapped_column(Text, nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
     test: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
 
 
