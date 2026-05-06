@@ -1,60 +1,101 @@
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import Depends, HTTPException, Response, Request
+from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from crud.user import get_user_by_id, get_user_by_login, create_user
 from crud.refresh_token import create_refresh_token
-from database.models.base import User, RefreshToken, UserStatusEnum
+from database.models.base import User, RefreshToken
 import scripts.auth as auth
 from datetime import datetime, timedelta
+from database.core.db import get_db
+from jose import JWTError
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="user/login", auto_error=False)
+COOKIE_SECURE = True
+COOKIE_SAMESITE = "strict"
 
 
-async def get_current_user(db, token: str = Depends(oauth2_scheme)) -> User:
-    """Получение текущего пользователя из токена"""
-    if not isinstance(token,str):
+async def get_token_from_cookie(request: Request) -> str:
+    token = request.cookies.get("access_token")
+    # if not token:
+    #    raise HTTPException(status_code=401, detail="Not authenticated")
+    return token
+
+
+async def get_current_user(
+    token: str = Depends(get_token_from_cookie), db: AsyncSession = Depends(get_db)
+) -> User:
+    if token is None:
         return None
-    user_id = await auth.get_user_id_from_token(token)
-    payload = await auth.decode_token(token)
-    if payload.get("type") != "access":
-        raise HTTPException(status_code=401, detail="Invalid token type")
-    return await get_user_by_id(db, user_id)
+    credentials_exception = HTTPException(status_code=401, detail="Invalid credentials")
+    try:
+        payload = auth.decode_token(token)
+        if payload.get("type") != "access":
+            raise credentials_exception
+        login = payload.get("sub")
+        if login is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    user = await get_user_by_id(db, login)
+    if user is None:
+        raise credentials_exception
+    return user
 
 
-def require_status(allowed_statuses: list[UserStatusEnum]):
-    """Декоратор для проверки статуса пользователя"""
+async def require_user(status: dict | str | None = None):
+    user = await get_current_user()
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if status is not None and (
+        isinstance(status, dict)
+        and user.status not in status
+        or isinstance(status, str)
+        and user.status != status
+    ):
+        raise HTTPException(status_code=401, detail="Not enough rights")
+    return user
 
-    async def dependency(current_user: User | None = Depends(get_current_user)):
-        if current_user is None or current_user.status not in allowed_statuses:
-            raise HTTPException(
-                status_code=403,
-                detail=f"Access denied. Required status: {[s.value for s in allowed_statuses]}",
-            )
-        return current_user
 
-    return dependency
+def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        max_age=int(
+            timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES).total_seconds()
+        ),
+        path="/",
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        max_age=int(timedelta(days=auth.REFRESH_TOKEN_EXPIRE_DAYS).total_seconds()),
+        path="/",
+    )
 
 
 async def register_user(
     db: AsyncSession, name: str, login: str, password: str
 ) -> User | None:
-    if not await get_user_by_login(db, login):
-        return await create_user(
-            db,
-            User(name=name, login=login, password=await auth.hash_password(password)),
-        )
-    return None
+    if await get_user_by_login(db, login):
+        return JSONResponse(content={"message": "user already exists"})
+    await create_user(
+        db,
+        User(name=name, login=login, password=await auth.hash_password(password)),
+    )
+    return await login_user(db, login, password)
 
 
-async def login_user(
-    db: AsyncSession, login: str, password: str
-) -> RedirectResponse | HTMLResponse:
+async def login_user(db: AsyncSession, login: str, password: str) -> dict:
     user = await get_user_by_login(db, login)
     if not user or not await auth.verify_password(password, user.password):
         raise HTTPException(status_code=401, detail="Invalid login or password")
-    result = RedirectResponse(url="login", status_code=status.HTTP_303_SEE_OTHER)
-    refresh = await auth.create_refresh_token(user.id)
+    refresh = auth.create_refresh_token(user.id)
+    access = auth.create_access_token(user.id)
     await create_refresh_token(
         db,
         RefreshToken(
@@ -64,21 +105,13 @@ async def login_user(
             + timedelta(days=auth.REFRESH_TOKEN_EXPIRE_DAYS),
         ),
     )
-    result.set_cookie(
-        key="access",
-        value=await auth.create_access_token(user.id),
-        max_age=auth.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        secure=True,
-        httponly=True,
-        samesite="lax",
-    )
-    result.set_cookie(
-        key="refresh",
-        value=refresh,
-        max_age=timedelta(days=auth.REFRESH_TOKEN_EXPIRE_DAYS),
-        secure=True,
-        httponly=True,
-        samesite="lax",
-    )
+    response = JSONResponse(content={"message": "login"})
+    set_auth_cookies(response, access, refresh)
+    return response
 
-    return result
+
+async def logout_user():
+    response = RedirectResponse("test")
+    response.delete_cookie(key="access_token", path="/")
+    response.delete_cookie(key="refresh_token", path="/")
+    return response

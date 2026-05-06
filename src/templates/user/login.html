@@ -2,10 +2,29 @@
 {% block title %}login{% endblock %}
 {% block content %}
 <div>
-    <form action="login" id="form_0" method="post" enctype=multipart/form-data>
-        <input type="text" name="login" id="login" placeholder="Логин"required/>
-        <input type="password" name="password" id="password" placeholder="Пароль"required/>
+    <form id="login_form">
+        <input type="text" name="login" id="login" placeholder="Логин" required/>
+        <input type="password" name="password" id="password" placeholder="Пароль" required/>
         <input type="submit" value="Войти"/>
     </form>
+    <p>Don't have an account? <a href="{{ url_for('register') }}">Register</a></p>
 </div>
+{% endblock %}
+{% block js_after %}
+get = (i)=>document.getElementById(i)
+get('login_form').addEventListener('submit',async (e)=>{
+    e.preventDefault();
+    const form = new URLSearchParams({login: get('login').value, password: get('password').value });
+    try{
+        const res = await fetch('/user/login', {
+            method: 'post',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: form,
+            credentials: 'include'
+        });
+        if(res.ok)window.location.href = "{{ url_for('test') }}"
+
+    }catch (err) {
+    }
+})
 {% endblock %}

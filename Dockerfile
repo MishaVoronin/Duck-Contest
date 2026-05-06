@@ -3,7 +3,7 @@ WORKDIR /
 ADD uv.lock /
 ADD pyproject.toml /
 WORKDIR /src
-ADD src/main.py .
-COPY src/api ./api
-COPY src/templates ./templates
-
+#ADD src/main.py .
+#COPY src/api ./api
+#COPY src/templates ./templates
+COPY src/ .
