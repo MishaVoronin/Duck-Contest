@@ -1,9 +1,10 @@
 FROM ghcr.io/astral-sh/uv:0.11.7-python3.14-trixie
-WORKDIR /
-ADD uv.lock /
-ADD pyproject.toml /
-WORKDIR /src
-#ADD src/main.py .
-#COPY src/api ./api
-#COPY src/templates ./templates
+WORKDIR /app
+ADD uv.lock pyproject.toml ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project
+WORKDIR /app/src
 COPY src/ .
+RUN uv sync
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen

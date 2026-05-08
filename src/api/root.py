@@ -2,6 +2,8 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from api import user
+import os
+from fastapi.staticfiles import StaticFiles
 
 router = APIRouter(tags=[""])
 templates = Jinja2Templates(directory="templates")
@@ -18,5 +20,7 @@ async def ico():
 
 
 def reg(app):
+    os.makedirs("static", exist_ok=True)
+    app.mount("/static", StaticFiles(directory="static"), name="static")
     app.include_router(router)
     app.include_router(user.router)

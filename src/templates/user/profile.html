@@ -1,7 +1,20 @@
 {% extends 'base.html' %}
-{% block title %}login{% endblock %}
+{% block title %}profile{% endblock %}
 {% block content %}
-<div>
-    something interesting
+    <div id="app">
+
+    </div>
 </div>
+{% endblock %}
+{% block js_after %}
+loadProfile().then(profile=>{
+    //console.log(profile);
+    if (profile!=null){
+        const {name, login} = profile;
+        get('app').innerHTML = `<p>hello, ${name}<br><a href='{{ url_for('logout') }}'>logout</a></p>`;
+    }else{
+        get('app').innerHTML = "<p>u are not authorized.<br><a href='{{ request.url_for('login')}}'>login</a> or <a href='{request.url_for('register')}'>register</a></p>";
+    }
+});
+
 {% endblock %}

@@ -50,13 +50,15 @@ class RefreshToken(Base):
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
     token = mapped_column(String, unique=True, index=True, nullable=False)
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     expires_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
     is_revoked = mapped_column(Boolean, default=False)
-    created_at = mapped_column(DateTime, server_default=func.utcnow())
-    revoked_at = mapped_column(DateTime, nullable=True)
+    created_at = mapped_column(DateTime(timezone=True), server_default=func.utcnow())
+    revoked_at = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class Contest(Base):

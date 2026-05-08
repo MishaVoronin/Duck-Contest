@@ -1,17 +1,19 @@
 """initial models
 
-Revision ID: 9508b4709b60
-Revises: 073205162684
-Create Date: 2026-04-27 20:31:10.729920
+Revision ID: 84988fe76322
+Revises: 15fdba873058
+Create Date: 2026-05-08 18:18:52.912565
 
 """
-
 from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = "9508b4709b60"
-down_revision: Union[str, Sequence[str], None] = "073205162684"
+revision: str = '84988fe76322'
+down_revision: Union[str, Sequence[str], None] = '15fdba873058'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

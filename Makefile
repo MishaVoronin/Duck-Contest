@@ -5,18 +5,19 @@ down:
 	docker-compose down
 
 build:
-	docker-compose build 
+	docker-compose build
 
 rebuild:
 	docker-compose down
-	docker-compose build 
+	docker-compose build
 	docker-compose up -d
 
-migration: 
-	uv run alembic -c src/database/alembic.ini revision --autogenerate -m "initial models"
+migration:
+	docker exec duck-contest-app-1 uv run alembic -c database/alembic.ini upgrade head
 
-migrate: 
-	uv run alembic -c src/database/alembic.ini upgrade head
+migrate:
+	docker exec duck-contest-app-1 uv run alembic -c database/alembic.ini revision --autogenerate -m "initial models"
+
 
 format:
 	uv run ruff format .

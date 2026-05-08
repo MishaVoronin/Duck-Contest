@@ -25,7 +25,7 @@ get('login_form').addEventListener('submit',async (e)=>{
             body: form,
             credentials: 'include'
         });
-        if(res.ok)window.location.href = "{{ url_for('test') }}"
+        if(res.ok)window.location.href = "{{ url_for(redirect) }}"
 
     }catch (err) {
     }

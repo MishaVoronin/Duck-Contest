@@ -1,14 +1,19 @@
 <!doctype html>
 <html>
     <head>
+        <script src="/static/script.js"></script>
         <title>{% block title %}{% endblock %}</title>
         <meta charset="utf-8"/>
+        <script>
+          {% block js_before %}{% endblock %}
+        </script>
     </head>
     <body>
         {% block content %}
         {% endblock %}
     </body>
     <script>
+      get = (i)=>document.getElementById(i);
       {% block js_after %}{% endblock %}
     </script>
 </html>
