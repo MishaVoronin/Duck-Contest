@@ -37,7 +37,7 @@ async def get_task_info(  # contest/(slug:str)/task/(slug:str)/
     )
 
     if access is None:
-        return "404 contest not found"
+        return "403 You do not have access this contest"
     else:
         return task_dict
 
@@ -49,7 +49,7 @@ async def create_task(  # contest/(slug:str)/task/set
     task_slug: str,
     task_name: str,
     task_text: str,
-    task_test: dict,
+    answer:str,
 ) -> Task | str:
     contest: Contest | None = await get_contest_by_slug(db, contest_slug)
 
@@ -67,7 +67,7 @@ async def create_task(  # contest/(slug:str)/task/set
         slug=task_slug,
         name=task_name,
         text=task_text,
-        test=task_test,
+        answer=answer,
     )
 
     task = await add_task(db, task)
@@ -81,7 +81,7 @@ async def edit_task(  # contest/(slug:str)/task/(slug:str)/edit
     task_slug: str,
     task_name: str,
     task_text: str,
-    task_test: dict,
+    answer:str,
 ) -> Task | str:
     contest: Contest | None = await get_contest_by_slug(db, contest_slug)
 
@@ -95,7 +95,7 @@ async def edit_task(  # contest/(slug:str)/task/(slug:str)/edit
     if task is None:
         return "404 task not found"
 
-    task = await update_task(db, task, task_name, task_text, task_test)
+    task = await update_task(db, task, task_name, task_text, answer)
     return get_task_info(db, user, contest_slug)
 
 

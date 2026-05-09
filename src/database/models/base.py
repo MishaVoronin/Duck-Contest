@@ -25,6 +25,7 @@ class SolutionStatusEnum(str, enum.Enum):
     ML = "ML"
     CE = "CE"
     RE = "RE"
+    WA = "WA"
 
 class AnswerTypeEnum(str, enum.Enum):
     ONLI_ANSWER = "ONLI_ANSWER"
@@ -81,11 +82,12 @@ class Task(Base):
     contest_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("contest.id"), nullable=False
     )
-    slug: Mapped[str] = mapped_column(String(255))
+    slug: Mapped[str] = mapped_column(String(255), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
-    test: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
-    answer_type:Mapped[AnswerTypeEnum] = mapped_column(String(255), nullable=False)
+    answer: Mapped[str] = mapped_column(String(255), nullable=False)
+    #test: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    #answer_type:Mapped[AnswerTypeEnum] = mapped_column(String(255), nullable=False)
 
 
 class Solution(Base):

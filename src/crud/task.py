@@ -33,11 +33,11 @@ async def delete_task_from_bd(db: AsyncSession, task: Task) -> None:
 
 
 async def update_task(
-    db: AsyncSession, task: Task, name: str, text: str, test: dict
+    db: AsyncSession, task: Task, name: str, text: str, answer: str
 ) -> Task:
     task.name = name
     task.text = text
-    task.test = test
+    task.answer = answer
     await db.commit()
     await db.refresh(task)
     return task
