@@ -26,6 +26,8 @@ class SolutionStatusEnum(str, enum.Enum):
     CE = "CE"
     RE = "RE"
 
+class AnswerTypeEnum(str, enum.Enum):
+    ONLI_ANSWER = "ONLI_ANSWER"
 
 class User(Base):
     __tablename__ = "user"
@@ -83,6 +85,7 @@ class Task(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     test: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    answer_type:Mapped[AnswerTypeEnum] = mapped_column(String(255), nullable=False)
 
 
 class Solution(Base):
