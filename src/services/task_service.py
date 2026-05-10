@@ -49,7 +49,7 @@ async def create_task(  # contest/(slug:str)/task/set
     task_slug: str,
     task_name: str,
     task_text: str,
-    answer:str,
+    answer: str,
 ) -> Task | str:
     contest: Contest | None = await get_contest_by_slug(db, contest_slug)
 
@@ -81,7 +81,7 @@ async def edit_task(  # contest/(slug:str)/task/(slug:str)/edit
     task_slug: str,
     task_name: str,
     task_text: str,
-    answer:str,
+    answer: str,
 ) -> Task | str:
     contest: Contest | None = await get_contest_by_slug(db, contest_slug)
 

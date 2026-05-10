@@ -3,9 +3,8 @@ from datetime import datetime
 import uuid
 import enum
 from sqlalchemy import String, Text, Boolean, DateTime, ForeignKey, func, text
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from typing import Any
 
 
 class Base(DeclarativeBase):
@@ -27,8 +26,10 @@ class SolutionStatusEnum(str, enum.Enum):
     RE = "RE"
     WA = "WA"
 
+
 class AnswerTypeEnum(str, enum.Enum):
     ONLI_ANSWER = "ONLI_ANSWER"
+
 
 class User(Base):
     __tablename__ = "user"
@@ -86,8 +87,8 @@ class Task(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     answer: Mapped[str] = mapped_column(String(255), nullable=False)
-    #test: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
-    #answer_type:Mapped[AnswerTypeEnum] = mapped_column(String(255), nullable=False)
+    # test: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    # answer_type:Mapped[AnswerTypeEnum] = mapped_column(String(255), nullable=False)
 
 
 class Solution(Base):
