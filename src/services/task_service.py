@@ -7,112 +7,100 @@ from crud.task import (
     delete_task_from_bd,
     update_task,
 )
-from database.models.base import User, Contest, Task, ContestAccess
+from database.models.base import User, Task
+from schemas.task import CreateTaskInput, EditTaskInput
+from fastapi import HTTPException
 
 
-async def get_task_info(  # contest/(slug:str)/task/(slug:str)/
+async def get_task_info(
     db: AsyncSession, user: User, contest_slug: str, task_slug: str
-) -> dict | str:
-    contest: Contest | None = await get_contest_by_slug(db, contest_slug)
-
+) -> dict:
+    contest = await get_contest_by_slug(db, contest_slug)
     if contest is None:
-        return "404 contest not found"
+        raise HTTPException(status_code=404, detail="Contest not found")
 
-    task: Task | None = await get_task_by_slug_and_contest_id(db, task_slug, contest.id)
-
-    task_dict: dict = {"name": task.name, "text": task.text, "is_curator": False}
+    task = await get_task_by_slug_and_contest_id(db, task_slug, contest.id)
 
     if task is None:
-        return "404 task is not found"
+        raise HTTPException(status_code=404, detail="Task not found")
 
-    if contest.curator_id is user.id:
-        task_dict["is_curator"] = True
+    task_dict = {
+        "name": task.name,
+        "text": task.text,
+        "is_curator": contest.curator_id == user.id,
+    }
+
+    if contest.curator_id == user.id:
         return task_dict
 
-    if contest.is_public:
-        return task_dict
+    access = await get_access_by_user_and_contest(db, user.id, contest.id)
 
-    access: ContestAccess | None = await get_access_by_user_and_contest(
-        db, user.id, contest.id
-    )
+    if not contest.is_active:
+        raise HTTPException(status_code=404, detail="Contest is not active")
 
-    if access is None:
-        return "403 You do not have access this contest"
-    else:
-        return task_dict
+    if not contest.is_public and access is None:
+        raise HTTPException(
+            status_code=403, detail="You do not have access to this contest"
+        )
+
+    return task_dict
 
 
-async def create_task(  # contest/(slug:str)/task/set
-    db: AsyncSession,
-    user: User,
-    contest_slug: str,
-    task_slug: str,
-    task_name: str,
-    task_text: str,
-    answer: str,
-) -> Task | str:
-    contest: Contest | None = await get_contest_by_slug(db, contest_slug)
-
+async def create_task(
+    db: AsyncSession, user: User, contest_slug: str, data: CreateTaskInput
+) -> dict:
+    contest = await get_contest_by_slug(db, contest_slug)
     if contest is None:
-        return "404 contest not found"
+        raise HTTPException(status_code=404, detail="Contest not found")
+    if contest.curator_id != user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
 
-    if contest.curator_id is not user.id:
-        return "403 You do not have access this contest"
+    if await get_task_by_slug_and_contest_id(db, data.slug, contest.id) is not None:
+        raise HTTPException(
+            status_code=409, detail="Task with this slug already exists in contest"
+        )
 
-    if await get_task_by_slug_and_contest_id(db, task_slug, contest.id) is not None:
-        return "There is a task with this slug in this contest"
-
-    task: Task = Task(
+    task = Task(
         contest_id=contest.id,
-        slug=task_slug,
-        name=task_name,
-        text=task_text,
-        answer=answer,
+        slug=data.slug,
+        name=data.name,
+        text=data.text,
+        answer=data.answer,
     )
-
     task = await add_task(db, task)
-    return get_task_info(db, user, contest_slug)
+
+    return await get_task_info(db, user, contest_slug, task.slug)
 
 
-async def edit_task(  # contest/(slug:str)/task/(slug:str)/edit
-    db: AsyncSession,
-    user: User,
-    contest_slug: str,
-    task_slug: str,
-    task_name: str,
-    task_text: str,
-    answer: str,
-) -> Task | str:
-    contest: Contest | None = await get_contest_by_slug(db, contest_slug)
-
+async def edit_task(
+    db: AsyncSession, user: User, contest_slug: str, task_slug: str, data: EditTaskInput
+) -> dict:
+    contest = await get_contest_by_slug(db, contest_slug)
     if contest is None:
-        return "404 contest not found"
+        raise HTTPException(status_code=404, detail="Contest not found")
+    if contest.curator_id != user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
 
-    if contest.curator_id is not user.id:
-        return "403 You do not have access this contest"
-
-    task: Task | None = await get_task_by_slug_and_contest_id(db, task_slug, contest.id)
+    task = await get_task_by_slug_and_contest_id(db, task_slug, contest.id)
     if task is None:
-        return "404 task not found"
+        raise HTTPException(status_code=404, detail="Task not found")
 
-    task = await update_task(db, task, task_name, task_text, answer)
-    return get_task_info(db, user, contest_slug)
+    task = await update_task(db, task, data.name, data.text, data.answer)
+    return await get_task_info(db, user, contest_slug, task.slug)
 
 
-async def delete_task(  # contest/(slug:str)/task/(slug:str)/delete
+async def delete_task(
     db: AsyncSession, user: User, contest_slug: str, task_slug: str
-) -> str:
-    contest: Contest | None = await get_contest_by_slug(db, contest_slug)
-
+) -> None:
+    contest = await get_contest_by_slug(db, contest_slug)
     if contest is None:
-        return "404 contest not found"
+        raise HTTPException(status_code=404, detail="Contest not found")
+    if contest.curator_id != user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
 
-    if contest.curator_id is not user.id:
-        return "403 You do not have access this contest"
-
-    task: Task | None = await get_task_by_slug_and_contest_id(db, task_slug, contest.id)
+    task = await get_task_by_slug_and_contest_id(db, task_slug, contest.id)
     if task is None:
-        return "404 task not found"
+        raise HTTPException(status_code=404, detail="Task not found")
 
     await delete_task_from_bd(db, task)
-    return "200 task is deleted"
+    return None
