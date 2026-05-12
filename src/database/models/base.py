@@ -102,6 +102,7 @@ class Solution(Base):
         DateTime(timezone=True), server_default=func.now()
     )
     status: Mapped[SolutionStatusEnum] = mapped_column(String(10), nullable=False)
+    answer: Mapped[str] = mapped_column(String(255), nullable=False)
 
 
 class ContestAccess(Base):

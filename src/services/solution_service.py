@@ -1,8 +1,6 @@
 from database.models.base import (
     User,
     ContestAccess,
-    Task,
-    Contest,
     Solution,
     SolutionStatusEnum,
 )
@@ -13,35 +11,35 @@ from crud.task import get_task_by_slug_and_contest_id
 from crud.solution import add_solution
 
 
-async def task_solution(  # contest/(slug:str)/task/(slug:str)/solution
-    db: AsyncSession, user: User, contest_slug: str, task_slug: str, answer: str
-) -> SolutionStatusEnum | str:
-    contest: Contest | None = await get_contest_by_slug(db, contest_slug)
+from fastapi import HTTPException
 
+
+async def task_solution(
+    db: AsyncSession, user: User, contest_slug: str, task_slug: str, answer: str
+) -> SolutionStatusEnum:
+    contest = await get_contest_by_slug(db, contest_slug)
     if contest is None:
-        return "404 contest not found"
+        raise HTTPException(status_code=404, detail="Contest not found")
 
     access: ContestAccess | None = await get_access_by_user_and_contest(
         db, user.id, contest.id
     )
+    if not contest.is_public and contest.curator_id != user.id and access is None:
+        raise HTTPException(
+            status_code=403, detail="You do not have access to this contest"
+        )
 
-    if access is None and user.id is not contest.id and not contest.is_public:
-        return "403 You do not have access this contest"
-
-    task: Task | None = await get_task_by_slug_and_contest_id(db, task_slug, contest.id)
-
+    task = await get_task_by_slug_and_contest_id(db, task_slug, contest.id)
     if task is None:
-        return "404 task is not found"
+        raise HTTPException(status_code=404, detail="Task not found")
 
-    solution: Solution = Solution(
+    solution = Solution(
         user_id=user.id,
         contest_id=contest.id,
+        status=SolutionStatusEnum.OK
+        if answer.strip() == task.answer.strip()
+        else SolutionStatusEnum.WA,
     )
-    if answer is task.answer:
-        solution.status = SolutionStatusEnum.OK
-    else:
-        solution.status = SolutionStatusEnum.WA
 
-    solution = await add_solution(db, solution)
-
-    return solution.status
+    saved_solution = await add_solution(db, solution)
+    return saved_solution.status
