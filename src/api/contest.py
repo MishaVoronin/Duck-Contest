@@ -21,7 +21,7 @@ router = APIRouter(prefix="/contest", tags=["работа с контестам�
 templates = Jinja2Templates(directory="templates")
 
 
-@router.get("/{slug}/edit/", response_model=ContestInfoResponse)
+@router.get("/{slug}/", response_model=ContestInfoResponse)
 async def get_contest_info_handler(
     slug: str,
     db: AsyncSession = Depends(get_db),
@@ -42,7 +42,7 @@ async def create_contest_handler(
     )
 
 
-@router.put("/{slug}/edit/")
+@router.put("/{slug}/edit")
 async def edit_contest_handler(
     slug: str,
     data: EditContestInput,

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, StringConstraints
 from typing import Annotated
-
+from database.models.base import SolutionStatusEnum
 SlugType = Annotated[
     str,
     StringConstraints(
@@ -24,5 +24,11 @@ class EditContestInput(BaseModel):
 
 class ContestInfoResponse(BaseModel):
     name: str
-    tasks: list[str]
+    tasks: list[TaskInContestResponse]
     is_curator: bool
+
+
+class TaskInContestResponse(BaseModel):
+    name: str
+    slug: str
+    status: SolutionStatusEnum|None

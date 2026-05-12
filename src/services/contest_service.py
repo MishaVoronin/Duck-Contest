@@ -7,10 +7,23 @@ from crud.contest import (
 )
 from crud.contest_access import get_access_by_user_and_contest
 from crud.task import get_tasks_by_contest_id
-from database.models.base import User, UserStatusEnum, Contest, ContestAccess
-from fastapi import HTTPException, status
-from schemas.contest import CreateContestInput, EditContestInput
+from crud.solution import get_solutions
 
+from database.models.base import User, UserStatusEnum, Contest, ContestAccess, SolutionStatusEnum, Solution
+from fastapi import HTTPException, status
+from schemas.contest import CreateContestInput, EditContestInput, TaskInContestResponse
+from uuid import UUID
+async def get_solutions_status(
+    db: AsyncSession ,user_id:UUID ,task_id: UUID
+) -> SolutionStatusEnum|None:
+    solutions:list[Solution] = await get_solutions(db,user_id,task_id)
+    if not len(solutions):
+        return None
+    statuses:list[SolutionStatusEnum] = [solution.status for solution in solutions]
+    if SolutionStatusEnum.OK in statuses:
+        return SolutionStatusEnum.OK
+    else:
+        return SolutionStatusEnum.WA
 
 async def get_contest_info(  # contest/(slug:str)/
     db: AsyncSession, user: User, contest_slug: str
@@ -23,7 +36,13 @@ async def get_contest_info(  # contest/(slug:str)/
 
     contest_dict: dict = {
         "name": contest.name,
-        "tasks": await get_tasks_by_contest_id(db, contest.id),
+        "tasks":[
+          TaskInContestResponse(
+              name = task.name,
+              slug = task.slug,
+              status = get_solutions_status(db,user.id,task.id)
+          )
+          for task in await get_tasks_by_contest_id(db,contest.id)],
         "is_curator": False,
     }
 

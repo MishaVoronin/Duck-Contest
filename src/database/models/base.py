@@ -27,8 +27,8 @@ class SolutionStatusEnum(str, enum.Enum):
     WA = "WA"
 
 
-class AnswerTypeEnum(str, enum.Enum):
-    ONLI_ANSWER = "ONLI_ANSWER"
+#class AnswerTypeEnum(str, enum.Enum):
+#    ONLI_ANSWER = "ONLI_ANSWER"
 
 
 class User(Base):

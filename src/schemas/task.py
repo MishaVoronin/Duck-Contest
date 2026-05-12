@@ -26,3 +26,5 @@ class TaskInfoResponse(BaseModel):
     name: str
     text: str
     is_curator: bool
+
+

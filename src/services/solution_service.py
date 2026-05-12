@@ -36,9 +36,9 @@ async def task_solution(
     solution = Solution(
         user_id=user.id,
         contest_id=contest.id,
-        status=SolutionStatusEnum.OK
+        status=(SolutionStatusEnum.OK
         if answer.strip() == task.answer.strip()
-        else SolutionStatusEnum.WA,
+        else SolutionStatusEnum.WA),
     )
 
     saved_solution = await add_solution(db, solution)
