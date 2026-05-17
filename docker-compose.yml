@@ -24,23 +24,17 @@ services:
       sh -c "mkcert -install &&
       mkcert -key-file /certs/key.pem -cert-file /certs/cert.pem localhost"
   app:
-    image: astral/uv:0.9.2-python3.14-alpine
+    build: .
     depends_on:
-      mkcert:
-        condition: service_completed_successfully
       db:
         condition: service_healthy
-    volumes:
-      - certs:/certs:ro
-    build: .
-    command: uv run uvicorn main:app --host 0.0.0.0 --port 8000 --ssl-certfile /certs/cert.pem --ssl-keyfile /certs/key.pem
+    command: uv run uvicorn main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
     env_file:
       - .env
     environment:
       - DB_HOST=db
-
 volumes:
   postgres_data:
   certs:

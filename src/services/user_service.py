@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from database.core.db import get_db
 from jose import JWTError
 
-COOKIE_SECURE = True
+COOKIE_SECURE = False
 COOKIE_SAMESITE = "lax"
 
 

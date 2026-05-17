@@ -1,20 +1,26 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from crud.contest import get_contest_by_slug
 from crud.contest_access import get_access_by_user_and_contest
+from crud.solution import get_solutions
 from crud.task import (
     get_task_by_slug_and_contest_id,
     add_task,
     delete_task_from_bd,
     update_task,
 )
-from database.models.base import User, Task
-from schemas.task import CreateTaskInput, EditTaskInput
-from fastapi import HTTPException
+from database.models.base import User, Task, Solution
+from schemas.task import CreateTaskInput, EditTaskInput, SolutionsInTaskResponse, TaskInfoResponse
+from fastapi import HTTPException, status
 
 
 async def get_task_info(
     db: AsyncSession, user: User, contest_slug: str, task_slug: str
 ) -> dict:
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
+        )
+
     contest = await get_contest_by_slug(db, contest_slug)
     if contest is None:
         raise HTTPException(status_code=404, detail="Contest not found")
@@ -23,12 +29,19 @@ async def get_task_info(
 
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
-
-    task_dict = {
-        "name": task.name,
-        "text": task.text,
-        "is_curator": contest.curator_id == user.id,
-    }
+    solutions: list[Solution] = await get_solutions(db,user.id,task.id)
+    task_dict = TaskInfoResponse(
+        name=task.name,
+        text=task.text,
+        solutions=[
+            SolutionsInTaskResponse(
+                status=solution.status,
+                answer=solution.answer,
+                submitted_at=solution.submitted_at
+            )
+            for solution in solutions],
+        is_curator=contest.curator_id == user.id,
+    )
 
     if contest.curator_id == user.id:
         return task_dict
@@ -49,6 +62,11 @@ async def get_task_info(
 async def create_task(
     db: AsyncSession, user: User, contest_slug: str, data: CreateTaskInput
 ) -> dict:
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
+        )
+
     contest = await get_contest_by_slug(db, contest_slug)
     if contest is None:
         raise HTTPException(status_code=404, detail="Contest not found")
@@ -65,7 +83,7 @@ async def create_task(
         slug=data.slug,
         name=data.name,
         text=data.text,
-        answer=data.answer,
+        answer=data.answer.strip(),
     )
     task = await add_task(db, task)
 
@@ -75,6 +93,11 @@ async def create_task(
 async def edit_task(
     db: AsyncSession, user: User, contest_slug: str, task_slug: str, data: EditTaskInput
 ) -> dict:
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
+        )
+
     contest = await get_contest_by_slug(db, contest_slug)
     if contest is None:
         raise HTTPException(status_code=404, detail="Contest not found")
@@ -92,6 +115,11 @@ async def edit_task(
 async def delete_task(
     db: AsyncSession, user: User, contest_slug: str, task_slug: str
 ) -> None:
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
+        )
+
     contest = await get_contest_by_slug(db, contest_slug)
     if contest is None:
         raise HTTPException(status_code=404, detail="Contest not found")

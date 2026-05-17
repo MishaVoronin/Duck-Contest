@@ -27,7 +27,7 @@ class SolutionStatusEnum(str, enum.Enum):
     WA = "WA"
 
 
-#class AnswerTypeEnum(str, enum.Enum):
+# class AnswerTypeEnum(str, enum.Enum):
 #    ONLI_ANSWER = "ONLI_ANSWER"
 
 
@@ -43,10 +43,6 @@ class User(Base):
         String(20), nullable=False, server_default=text("'user'")
     )
 
-    @property
-    def is_banned(self) -> bool:
-        return self.status == UserStatusEnum.BANNED
-
 
 class RefreshToken(Base):
     __tablename__ = "refresh_token"
@@ -55,13 +51,13 @@ class RefreshToken(Base):
     )
     token = mapped_column(String, unique=True, index=True, nullable=False)
     user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        ForeignKey("user.id", ondelete="CASCADE"), nullable=False
     )
     expires_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
     is_revoked = mapped_column(Boolean, default=False)
-    created_at = mapped_column(DateTime(timezone=True), server_default=func.utcnow())
+    created_at = mapped_column(DateTime(timezone=True), server_default=func.now())
     revoked_at = mapped_column(DateTime(timezone=True), nullable=True)
 
 
@@ -70,8 +66,9 @@ class Contest(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
-    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
     curator_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
     is_active: Mapped[bool] = mapped_column(default=True, server_default="true")
     is_public: Mapped[bool] = mapped_column(default=True, server_default="true")

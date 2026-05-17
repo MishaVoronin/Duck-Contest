@@ -1,10 +1,14 @@
 from pydantic import BaseModel, StringConstraints
 from typing import Annotated
 from database.models.base import SolutionStatusEnum
+
 SlugType = Annotated[
     str,
     StringConstraints(
-        pattern=r"^[a-zA-Z\-_]+$", min_length=1, max_length=255, strip_whitespace=True
+        pattern=r"^[0-9a-zA-Z\-_]+$",
+        min_length=1,
+        max_length=255,
+        strip_whitespace=True,
     ),
 ]
 
@@ -12,7 +16,11 @@ SlugType = Annotated[
 class CreateContestInput(BaseModel):
     name: str
     slug: SlugType
-    text: str
+    description:  Annotated[
+    str,StringConstraints(
+        min_length=1,
+        strip_whitespace=True,
+    )]
     is_public: bool = True
 
 
@@ -24,11 +32,13 @@ class EditContestInput(BaseModel):
 
 class ContestInfoResponse(BaseModel):
     name: str
-    tasks: list[TaskInContestResponse]
+    tasks: list[TaskInContestResponse] | None
+    description: str
+    is_activ: bool
     is_curator: bool
 
 
 class TaskInContestResponse(BaseModel):
     name: str
     slug: str
-    status: SolutionStatusEnum|None
+    status: SolutionStatusEnum | None

@@ -10,13 +10,17 @@ from crud.contest_access import get_access_by_user_and_contest
 from crud.task import get_task_by_slug_and_contest_id
 from crud.solution import add_solution
 
-
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 
 
 async def task_solution(
     db: AsyncSession, user: User, contest_slug: str, task_slug: str, answer: str
 ) -> SolutionStatusEnum:
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
+        )
+
     contest = await get_contest_by_slug(db, contest_slug)
     if contest is None:
         raise HTTPException(status_code=404, detail="Contest not found")
@@ -35,11 +39,14 @@ async def task_solution(
 
     solution = Solution(
         user_id=user.id,
-        contest_id=contest.id,
-        status=(SolutionStatusEnum.OK
-        if answer.strip() == task.answer.strip()
-        else SolutionStatusEnum.WA),
+        task_id=task.id,
+        answer=answer.strip(), 
+        status=(
+            SolutionStatusEnum.OK
+            if answer.strip() == task.answer
+            else SolutionStatusEnum.WA
+        ),
     )
 
     saved_solution = await add_solution(db, solution)
-    return saved_solution.status
+    return {"status": saved_solution.status}
