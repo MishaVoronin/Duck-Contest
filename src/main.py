@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from api import root
+from api import root_api
 
 app = FastAPI()
-root.reg(app)
+root_api.reg(app)

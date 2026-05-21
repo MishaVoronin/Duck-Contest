@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime
 import uuid
 import enum
-from sqlalchemy import String, Text, Boolean, DateTime, ForeignKey, func, text
+from sqlalchemy import String, Text, Boolean, DateTime, ForeignKey, func, text, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -14,7 +14,7 @@ class Base(DeclarativeBase):
 class UserStatusEnum(str, enum.Enum):
     USER = "user"
     CURATOR = "curator"
-    ADMIN = "admin"
+    MODERATOR = "moderator"
     BANNED = "banned"
 
 
@@ -70,8 +70,12 @@ class Contest(Base):
     slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     curator_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
-    is_active: Mapped[bool] = mapped_column(default=True, server_default="true")
-    is_public: Mapped[bool] = mapped_column(default=True, server_default="true")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    is_ended: Mapped[bool] = mapped_column(default=True, server_default="False")
+    is_active: Mapped[bool] = mapped_column(default=True, server_default="False")
+    is_public: Mapped[bool] = mapped_column(default=True, server_default="False")
 
 
 class Task(Base):
@@ -86,6 +90,7 @@ class Task(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     answer: Mapped[str] = mapped_column(String(255), nullable=False)
+    points: Mapped[int] = mapped_column(Integer)
     # test: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     # answer_type:Mapped[AnswerTypeEnum] = mapped_column(String(255), nullable=False)
 
@@ -101,6 +106,7 @@ class Solution(Base):
         DateTime(timezone=True), server_default=func.now()
     )
     status: Mapped[SolutionStatusEnum] = mapped_column(String(10), nullable=False)
+    points: Mapped[int] = mapped_column(Integer)
     answer: Mapped[str] = mapped_column(String(255), nullable=False)
 
 

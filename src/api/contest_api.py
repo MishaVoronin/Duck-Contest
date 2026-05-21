@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from services.user_service import get_current_user
@@ -8,14 +8,23 @@ from services.contest_service import (
     create_contest,
     edit_contest,
     delete_contest,
+    get_lust_public_contest,
 )
 from database.core.db import get_db
 from database.models.base import User
-from schemas.contest import ContestInfoResponse, CreateContestInput, EditContestInput
-from schemas.contest_access import CreateAccessInput
+from schemas.contest_schemas import ContestInfoResponse, CreateContestInput, EditContestInput, ContestSmallInfoResponse
+from schemas.contest_access_schemas import CreateAccessInput
 
 router = APIRouter(prefix="/contest", tags=["работа с контестами"])
 templates = Jinja2Templates(directory="templates")
+
+@router.get("/all/get",response_model=ContestSmallInfoResponse)
+async def get_public_contests(
+    last: str | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return await get_lust_public_contest(db,user,last)
 
 
 @router.get("/{slug}/get", response_model=ContestInfoResponse)
@@ -54,11 +63,12 @@ async def delete_contest_handler(
 ):
     await delete_contest(db, user, slug)
 
+
 @router.post("/{slug}/access/set", status_code=status.HTTP_200_OK)
 async def set_access(
-    slug:str,
-    data:CreateAccessInput,
+    slug: str,
+    data: CreateAccessInput,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    await create_contest_access(db,user,slug,data)
+    await create_contest_access(db, user, slug, data)

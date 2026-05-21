@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from api import user, contest, task
+from api import contest_api, task_api, user_api
 import os
 from fastapi.staticfiles import StaticFiles
 
@@ -23,6 +23,6 @@ def reg(app):
     os.makedirs("static", exist_ok=True)
     app.mount("/static", StaticFiles(directory="static"), name="static")
     app.include_router(router)
-    app.include_router(user.router)
-    app.include_router(contest.router)
-    app.include_router(task.router)
+    app.include_router(user_api.router)
+    app.include_router(contest_api.router)
+    app.include_router(task_api.router)

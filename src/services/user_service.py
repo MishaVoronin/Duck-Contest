@@ -1,8 +1,8 @@
 from fastapi import Depends, HTTPException, Response, Request
 from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from crud.user import get_user_by_id, get_user_by_login, create_user
-from crud.refresh_token import (
+from crud.user_crud import get_user_by_id, get_user_by_login, create_user
+from crud.refresh_token_crud import (
     save_refresh_token,
     get_refresh_token_by_jwt,
     revoke_token,

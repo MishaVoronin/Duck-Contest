@@ -6,11 +6,12 @@ from services.user_service import get_current_user
 from services.solution_service import task_solution
 from database.core.db import get_db
 from database.models.base import User
-from schemas.task import TaskInfoResponse, CreateTaskInput, EditTaskInput
-from schemas.solution import SubmitAnswerInput, SubmitAnswerResponse
+from schemas.task_schemas import TaskInfoResponse, CreateTaskInput, EditTaskInput
+from schemas.solution_schemas import SubmitAnswerInput, SubmitAnswerResponse
 
 router = APIRouter(prefix="/contest", tags=["работа с тасками"])
 templates = Jinja2Templates(directory="templates")
+
 
 @router.get("/{contest_slug}/task/{task_slug}/get", response_model=TaskInfoResponse)
 async def get_task_handler(

@@ -1,21 +1,20 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from crud.contest import get_contest_by_slug
-from crud.contest_access import add_access, get_access_by_user_and_contest, delete_contest_access_from_db
-from crud.user import get_user_by_name
-from schemas.contest_access import CreateAccessInput
-from database.models.base import User, Contest, ContestAccess
 from fastapi import HTTPException, status
+
+from crud import contest_crud, contest_access_crud, user_crud
+from schemas import contest_access_schemas
+from database.models.base import User, Contest, ContestAccess
 
 
 async def create_contest_access(
-    db: AsyncSession, user: User, slug: str, data:CreateAccessInput
+    db: AsyncSession, user: User, slug: str, data: contest_access_schemas.CreateAccessInput
 ) -> None:
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
         )
 
-    contest: Contest | None = await get_contest_by_slug(db, slug)
+    contest: Contest | None = await contest_crud.get_contest_by_slug(db, slug)
     if contest is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found"
@@ -27,28 +26,29 @@ async def create_contest_access(
             detail="You do not have access to this contest",
         )
 
-    added_user: ContestAccess | None = await get_user_by_name(db, data.name)
+    added_user: ContestAccess | None = await user_crud.get_user_by_name(db, data.name)
     if added_user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
-    access = await get_access_by_user_and_contest(db, added_user.id, contest.id)
+    access = await contest_access_crud.get_access_by_user_and_contest(db, added_user.id, contest.id)
     if access is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="This user already has access to this contest"
+            detail="This user already has access to this contest",
         )
-    
-    await add_access(ContestAccess(user_id=added_user.id, contest_id=contest.id))
 
-async def delite_contest_access(db:AsyncSession,user:User,slug:str,data:dict):
+    await contest_access_crud.add_access(ContestAccess(user_id=added_user.id, contest_id=contest.id))
+
+
+async def delite_contest_access(db: AsyncSession, user: User, slug: str, data: dict):
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
         )
 
-    contest: Contest | None = await get_contest_by_slug(db, slug)
+    contest: Contest | None = await contest_crud.get_contest_by_slug(db, slug)
     if contest is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found"
@@ -60,17 +60,19 @@ async def delite_contest_access(db:AsyncSession,user:User,slug:str,data:dict):
             detail="You do not have access to this contest",
         )
 
-    added_user: User | None = await get_user_by_name(db, data.name)
+    added_user: User | None = await user_crud.get_user_by_name(db, data.name)
     if added_user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
-    
-    access:ContestAccess | None  = await get_access_by_user_and_contest(db, added_user.id, contest.id)
-    if access is  None:
+
+    access: ContestAccess | None = await contest_access_crud.get_access_by_user_and_contest(
+        db, added_user.id, contest.id
+    )
+    if access is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="This user already hasn't access to this contest"
+            detail="This user already hasn't access to this contest",
         )
-    
-    await delete_contest_access_from_db(db,access)
+
+    await contest_access_crud.delete_contest_access_from_db(db, access)

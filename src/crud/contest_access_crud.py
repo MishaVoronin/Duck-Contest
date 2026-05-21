@@ -21,6 +21,9 @@ async def get_access_by_user_and_contest(
     )
     return result.scalar_one_or_none()
 
-async def delete_contest_access_from_db(db: AsyncSession, access: ContestAccess) -> None:
+
+async def delete_contest_access_from_db(
+    db: AsyncSession, access: ContestAccess
+) -> None:
     await db.delete(access)
     await db.commit()
