@@ -6,7 +6,7 @@ from alembic import context
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from database.core.config import settings
+from core.config import settings
 from database.models.base import Base
 
 config = context.config

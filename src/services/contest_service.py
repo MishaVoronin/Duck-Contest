@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 from uuid import UUID
-
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from crud import contest_crud, contest_access_crud, task_crud, solution_crud
 from schemas import contest_schemas
 from database.models.base import (
@@ -10,44 +10,10 @@ from database.models.base import (
     ContestAccess,
     SolutionStatusEnum,
     Solution,
+    UserStatusEnum,
 )
 
-
-async def get_lust_public_contest(
-    db: AsyncSession, user: User, last:str
-):
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
-        )
-    
-    if last is None:
-        contest:Contest|None= await get_the_last_contest(db)
-    
-    else:
-        last_contest: Contest | None = await contest_crud.get_contest_by_slug(db, last)
-        if last_contest is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found"
-        )
-        contest:Contest|None= await contest_crud.get_the_last_contest_after_a_certain_time(db,last_contest.created_at)
-    
-    if contest is None:
-        return contest_schemas.ContestSmallInfoResponse(
-            has_data=False,
-            data=None
-        )      
-
-    return contest_schemas.ContestSmallInfoResponse(
-        has_data=True,
-        data=contest_schemas.ContestSmallInfo(
-            name=contest.name,
-            slug=contest.slug,
-            description=contest.description,
-            is_activ=contest.is_active
-        )
-    )         
-        
+  
 
 async def get_solutions_points(
     db: AsyncSession, user_id: UUID, task_id: UUID
@@ -118,8 +84,8 @@ async def create_contest(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
         )
 
-    # if user.status is not UserStatusEnum.CURATOR:
-    #    raise HTTPException(status_code=403, detail="The user is not a curator")
+    if user.status != UserStatusEnum.CURATOR:
+        raise HTTPException(status_code=403, detail="The user is not a curator")
 
     if await contest_crud.get_contest_by_slug(db, data.slug) is not None:
         raise HTTPException(status_code=409, detail="There is a contest with this slug")

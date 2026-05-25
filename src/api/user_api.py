@@ -13,7 +13,7 @@ from services.user_service import (
     refresh,
     restore_session,
 )
-from database.core.db import get_db
+from core.db import get_db
 
 
 router = APIRouter(prefix="/user", tags=["работа с пользователями"])

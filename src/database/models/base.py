@@ -27,8 +27,6 @@ class SolutionStatusEnum(str, enum.Enum):
     WA = "WA"
 
 
-# class AnswerTypeEnum(str, enum.Enum):
-#    ONLI_ANSWER = "ONLI_ANSWER"
 
 
 class User(Base):
@@ -91,8 +89,6 @@ class Task(Base):
     text: Mapped[str] = mapped_column(Text, nullable=False)
     answer: Mapped[str] = mapped_column(String(255), nullable=False)
     points: Mapped[int] = mapped_column(Integer)
-    # test: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
-    # answer_type:Mapped[AnswerTypeEnum] = mapped_column(String(255), nullable=False)
 
 
 class Solution(Base):
@@ -119,3 +115,17 @@ class ContestAccess(Base):
         ForeignKey("contest.id"), nullable=False
     )
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
+
+class News(Base):
+    __tablename__ = "news"
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
+    )
+    slug: Mapped[str] = mapped_column(String(255), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    
+    curator_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
