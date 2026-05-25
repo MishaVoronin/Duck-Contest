@@ -13,7 +13,6 @@ from database.models.base import (
     UserStatusEnum,
 )
 
-  
 
 async def get_solutions_points(
     db: AsyncSession, user_id: UUID, task_id: UUID
@@ -42,19 +41,21 @@ async def get_contest_info(  # contest/(slug:str)/
             status_code=status.HTTP_404_NOT_FOUND, detail="Contest not found"
         )
 
-    contest_response: contest_schemas.ContestInfoResponse = contest_schemas.ContestInfoResponse(
-        name=contest.name,
-        description=contest.description,
-        tasks=[
-            contest_schemas.TaskInContestResponse(
-                name=task.name,
-                slug=task.slug,
-                points=get_solutions_points(db, user.id, task.id),
-            )
-            for task in await task_crud.get_tasks_by_contest_id(db, contest.id)
-        ],
-        is_curator=False,
-        is_activ=contest.is_active,
+    contest_response: contest_schemas.ContestInfoResponse = (
+        contest_schemas.ContestInfoResponse(
+            name=contest.name,
+            description=contest.description,
+            tasks=[
+                contest_schemas.TaskInContestResponse(
+                    name=task.name,
+                    slug=task.slug,
+                    points=get_solutions_points(db, user.id, task.id),
+                )
+                for task in await task_crud.get_tasks_by_contest_id(db, contest.id)
+            ],
+            is_curator=False,
+            is_activ=contest.is_active,
+        )
     )
 
     if contest.curator_id == user.id:
@@ -64,7 +65,9 @@ async def get_contest_info(  # contest/(slug:str)/
     if not contest.is_active and contest.is_public:
         contest_response["tasks"] = None
         return contest_response
-    access: ContestAccess | None = await contest_access_crud.get_access_by_user_and_contest(
+    access: (
+        ContestAccess | None
+    ) = await contest_access_crud.get_access_by_user_and_contest(
         db, user.id, contest.id
     )
 
@@ -97,13 +100,16 @@ async def create_contest(
         description=data.description,
         is_active=False,
         is_public=data.is_public,
-        is_ended=False
+        is_ended=False,
     )
     contest = await contest_crud.add_contest(db, contest)
 
 
 async def edit_contest(
-    db: AsyncSession, user: User, contest_slug: str, data: contest_schemas.EditContestInput
+    db: AsyncSession,
+    user: User,
+    contest_slug: str,
+    data: contest_schemas.EditContestInput,
 ) -> dict:
     if user is None:
         raise HTTPException(

@@ -55,7 +55,8 @@ class ContestSmallInfo(BaseModel):
 
 class ContestSmallInfoResponse(BaseModel):
     has_data: bool
-    data: ContestSmallInfo|None
+    data: ContestSmallInfo | None
+
 
 class ContestInfoResponse(BaseModel):
     name: str
@@ -69,4 +70,3 @@ class TaskInContestResponse(BaseModel):
     name: str
     slug: str
     points: int
-    

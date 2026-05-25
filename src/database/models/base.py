@@ -27,16 +27,15 @@ class SolutionStatusEnum(str, enum.Enum):
     WA = "WA"
 
 
-
-
 class User(Base):
     __tablename__ = "user"
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    SFP: Mapped[str | None] = mapped_column(String(255), nullable=True)
     login: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    password: Mapped[str] = mapped_column(String(255), nullable=False)
+    hash_password: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[UserStatusEnum] = mapped_column(
         String(20), nullable=False, server_default=text("'user'")
     )
@@ -116,6 +115,7 @@ class ContestAccess(Base):
     )
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
 
+
 class News(Base):
     __tablename__ = "news"
     id: Mapped[uuid.UUID] = mapped_column(
@@ -124,7 +124,7 @@ class News(Base):
     slug: Mapped[str] = mapped_column(String(255), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
-    
+
     curator_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

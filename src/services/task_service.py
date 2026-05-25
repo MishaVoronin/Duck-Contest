@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from crud import contest_crud, contest_access_crud, solution_crud, task_crud 
+from crud import contest_crud, contest_access_crud, solution_crud, task_crud
 from schemas import task_schemas
 from database.models.base import User, Task, Solution
 
@@ -41,7 +41,9 @@ async def get_task_info(
     if contest.curator_id == user.id:
         return task_dict
 
-    access = await contest_access_crud.get_access_by_user_and_contest(db, user.id, contest.id)
+    access = await contest_access_crud.get_access_by_user_and_contest(
+        db, user.id, contest.id
+    )
 
     if not contest.is_active:
         raise HTTPException(status_code=404, detail="Contest is not active")
@@ -68,7 +70,10 @@ async def create_task(
     if contest.curator_id != user.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    if await task_crud.get_task_by_slug_and_contest_id(db, data.slug, contest.id) is not None:
+    if (
+        await task_crud.get_task_by_slug_and_contest_id(db, data.slug, contest.id)
+        is not None
+    ):
         raise HTTPException(
             status_code=409, detail="Task with this slug already exists in contest"
         )
@@ -87,7 +92,11 @@ async def create_task(
 
 
 async def edit_task(
-    db: AsyncSession, user: User, contest_slug: str, task_slug: str, data: task_schemas.EditTaskInput
+    db: AsyncSession,
+    user: User,
+    contest_slug: str,
+    task_slug: str,
+    data: task_schemas.EditTaskInput,
 ) -> dict:
     if user is None:
         raise HTTPException(

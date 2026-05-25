@@ -22,7 +22,9 @@ async def task_solution(
     if contest is None:
         raise HTTPException(status_code=404, detail="Contest not found")
 
-    access: ContestAccess | None = await contest_access_crud.get_access_by_user_and_contest(
+    access: (
+        ContestAccess | None
+    ) = await contest_access_crud.get_access_by_user_and_contest(
         db, user.id, contest.id
     )
     if not contest.is_public and contest.curator_id != user.id and access is None:

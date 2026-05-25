@@ -7,7 +7,10 @@ from database.models.base import User, Contest, ContestAccess
 
 
 async def create_contest_access(
-    db: AsyncSession, user: User, slug: str, data: contest_access_schemas.CreateAccessInput
+    db: AsyncSession,
+    user: User,
+    slug: str,
+    data: contest_access_schemas.CreateAccessInput,
 ) -> None:
     if user is None:
         raise HTTPException(
@@ -32,14 +35,18 @@ async def create_contest_access(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
-    access = await contest_access_crud.get_access_by_user_and_contest(db, added_user.id, contest.id)
+    access = await contest_access_crud.get_access_by_user_and_contest(
+        db, added_user.id, contest.id
+    )
     if access is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="This user already has access to this contest",
         )
 
-    await contest_access_crud.add_access(ContestAccess(user_id=added_user.id, contest_id=contest.id))
+    await contest_access_crud.add_access(
+        ContestAccess(user_id=added_user.id, contest_id=contest.id)
+    )
 
 
 async def delite_contest_access(db: AsyncSession, user: User, slug: str, data: dict):
@@ -66,7 +73,9 @@ async def delite_contest_access(db: AsyncSession, user: User, slug: str, data: d
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
-    access: ContestAccess | None = await contest_access_crud.get_access_by_user_and_contest(
+    access: (
+        ContestAccess | None
+    ) = await contest_access_crud.get_access_by_user_and_contest(
         db, added_user.id, contest.id
     )
     if access is None:

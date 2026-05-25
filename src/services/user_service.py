@@ -1,20 +1,37 @@
 from fastapi import Depends, HTTPException, Response, Request
 from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from crud.user_crud import get_user_by_id, get_user_by_login, create_user
-from crud.refresh_token_crud import (
-    save_refresh_token,
-    get_refresh_token_by_jwt,
-    revoke_token,
-)
-from database.models.base import User, RefreshToken
-import scripts.auth as auth
 from datetime import datetime, timedelta
-from database.core.db import get_db
 from jose import JWTError
+
+from crud import user_crud, refresh_token_crud
+from database.models.base import User, RefreshToken, UserStatusEnum
+from core import auth
+from core.db import get_db
+from schemas import user_schemas
 
 COOKIE_SECURE = False
 COOKIE_SAMESITE = "lax"
+
+
+async def get_user_info(
+    db: AsyncSession, user: User, name: str
+) -> user_schemas.UserInfoResponse:
+    user_info: User | None = user_crud.get_user_by_name(db, name)
+    if user_info is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return user_schemas.UserInfoResponse(
+        user_info=user_schemas.UserInfo(
+            name=user_info.name,
+            SFP=user_info.sfp,
+            status=user_info.status,
+        ),
+        is_moderator=False
+        if user_info is None
+        else user.status == UserStatusEnum.MODERATOR,
+        is_me=False if user_info is None else user.id == user_info.id,
+    )
 
 
 async def get_current_user(
@@ -35,7 +52,7 @@ async def get_current_user(
         return None
     except AttributeError:
         return None
-    user = await get_user_by_id(db, login)
+    user = await user_crud.get_user_by_id(db, login)
     if user is None:
         return None
     return user
@@ -54,10 +71,6 @@ async def require_user(
     ):
         raise HTTPException(status_code=401, detail="Not enough rights")
     return user
-
-
-async def is_loggined(user: User | None = Depends(get_current_user)) -> bool:
-    return user is not None
 
 
 def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
@@ -84,24 +97,29 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
 
 
 async def register_user(
-    db: AsyncSession, name: str, login: str, password: str
+    db: AsyncSession, data: user_schemas.RegisterUserInput
 ) -> User | None:
-    if await get_user_by_login(db, login):
+    if await user_crud.get_user_by_login(db, data.login):
         return JSONResponse(content={"message": "user already exists"})
-    await create_user(
-        db,
-        User(name=name, login=login, password=auth.hash_password(password)),
+    user: User = User(
+        name=data.name,
+        login=data.login,
+        hash_password=auth.hash_password(data.password),
     )
-    return await login_user(db, login, password)
+    await user_crud.create_user(db, user)
+
+    return await login_user(
+        db, user_schemas.LoginInput(login=user.login, password=data.password)
+    )
 
 
-async def login_user(db: AsyncSession, login: str, password: str) -> dict:
-    user = await get_user_by_login(db, login)
-    if not user or not auth.verify_password(password, user.password):
+async def login_user(db: AsyncSession, data: user_schemas.LoginInput) -> dict:
+    user = await user_crud.get_user_by_login(db, data.login)
+    if not user or not auth.verify_password(data.password, user.hash_password):
         raise HTTPException(status_code=401, detail="Invalid login or password")
     refresh = auth.create_refresh_token(user.id)
     access = auth.create_access_token(user.id)
-    await save_refresh_token(
+    await refresh_token_crud.save_refresh_token(
         db,
         RefreshToken(
             user_id=user.id,
@@ -122,15 +140,15 @@ async def refresh(
     if not token:
         raise HTTPException(status_code=401, detail="Refresh token missing")
     payload = auth.decode_token(token, "refresh")
-    rt = await get_refresh_token_by_jwt(db, token)
+    rt = await refresh_token_crud.get_refresh_token_by_jwt(db, token)
     if not rt:
         raise HTTPException(status_code=401, detail="Token not found in DB")
-    await revoke_token(db, rt)
+    await refresh_token_crud.revoke_token(db, rt)
 
     user_id = payload["sub"]
     access = auth.create_access_token(user_id)
     refresh = auth.create_refresh_token(user_id)
-    await save_refresh_token(
+    await refresh_token_crud.save_refresh_token(
         db,
         RefreshToken(
             user_id=user_id,
@@ -149,12 +167,10 @@ async def restore_session(
 ):
     token = request.cookies.get("refresh_token")
     if not token:
-        # raise HTTPException(status_code=401, detail="Refresh token missing")
         return JSONResponse(content={"message": "Refresh token missing"})
     payload = auth.decode_token(token, "refresh")
-    rt = await get_refresh_token_by_jwt(db, token)
+    rt = await refresh_token_crud.get_refresh_token_by_jwt(db, token)
     if not rt or rt.is_revoked:
-        # raise HTTPException(status_code=401, detail="Session revoked")
         return JSONResponse(content={"message": "Session revoked"})
     access_token = auth.create_access_token(payload["sub"])
     response.set_cookie(
@@ -166,19 +182,21 @@ async def restore_session(
         max_age=auth.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/",
     )
-    user = await get_user_by_id(db, payload["sub"])
-    # print(payload["sub"],'ok')
+    user = await user_crud.get_user_by_id(db, payload["sub"])
     return JSONResponse(
-        content={"name": user.name, "login": user.login}, headers=response.headers
+        content={
+            "name": user.name, 
+            "login": user.login
+        }, headers=response.headers
     )
 
 
 async def logout_user(request: Request, db: AsyncSession):
     token = request.cookies.get("refresh_token")
-    if token:
-        rt = await get_refresh_token_by_jwt(db, token)
-        if rt and not rt.is_revoked:
-            await revoke_token(db, rt)
+    if token is not None:
+        rt = await refresh_token_crud.get_refresh_token_by_jwt(db, token)
+        if rt is not None and not rt.is_revoked:
+            await refresh_token_crud.revoke_token(db, rt)
     response = RedirectResponse("test")
     response.delete_cookie(key="access_token", path="/")
     response.delete_cookie(key="refresh_token", path="/")

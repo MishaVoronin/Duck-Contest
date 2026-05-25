@@ -18,13 +18,13 @@ class NewsInfoResponse(BaseModel):
         ),
     ]
     slug: Annotated[
-    str,
-    StringConstraints(
-        pattern=r"^[0-9a-zA-Z\-_]+$",
-        min_length=1,
-        max_length=100,
-        strip_whitespace=True,
-    ),
+        str,
+        StringConstraints(
+            pattern=r"^[0-9a-zA-Z\-_]+$",
+            min_length=1,
+            max_length=100,
+            strip_whitespace=True,
+        ),
     ]
     text: Annotated[
         str,
@@ -37,6 +37,5 @@ class NewsInfoResponse(BaseModel):
 
 
 class ListOfNewsInfoResponse(BaseModel):
-    news:list[NewsInfoResponse]
-    quantity:int
-    
+    news: list[NewsInfoResponse]
+    quantity: int
