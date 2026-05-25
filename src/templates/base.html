@@ -1,19 +1,279 @@
 <!doctype html>
 <html>
     <head>
-        <script src="/static/script.js"></script>
-        <title>{% block title %}{% endblock %}</title>
         <meta charset="utf-8"/>
-        <script>
-          {% block js_before %}{% endblock %}
-        </script>
+        <title>{% block title %}{% endblock %}</title>
+        <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+        <link href="/static/css/all.min.css" rel="stylesheet">
+
+        <script src="/static/js/vue.global.js"></script>
+        <script src="/static/js/bootstrap.bundle.min.js"></script>
+        <script src="/static/script.js"></script>
+        <style>
+            *{ transition: 0.3s background-color, 0.3s color; }
+            body.nav-scrolled { padding-top: 76px; }
+
+            .dark-theme{ background-color: #22272d; color: #eceff4; }
+            .dark-theme .bg-1 { background-color: #17a5b6; }
+            .dark-theme .bg-2 { background-color: #4a515a; }
+            .dark-theme .bg-3 { background-color: #3b424c; }
+            .dark-theme .bg-4 { background-color: #1c2024; }
+            .dark-theme .bg-5 { background-color: #4a515a; }
+            .dark-theme .fg-1 { color: #17a5b6; }
+            .dark-theme .fg-2 { color: #eceff4; }
+            .dark-theme .fg-3 { color: #adb5bd; }
+            .dark-theme .fg-4 { color: #868e96; }
+            .dark-theme .fg-5 { color: #17a5b6; }
+
+            .light-theme{ background-color: #ffffff; color: #343a40; }
+            .light-theme .bg-1 { background-color: #f0928d; }
+            .light-theme .bg-2 { background-color: #f4e3a9; }
+            .light-theme .bg-3 { background-color: #dceecf; }
+            .light-theme .bg-4 { background-color: #9bd5cc; }
+            .light-theme .bg-5 { background-color: #f8f9fa; }
+            .light-theme .fg-1 { color: #f0928d; }
+            .light-theme .fg-2 { color: #e03131; }
+            .light-theme .fg-3 { color: #2b8a3e; }
+            .light-theme .fg-4 { color: #0ca678; }
+            .light-theme .fg-5 { color: #5c7cfa; }
+
+            .avatar{ border-radius: 100%; width: 50px; height: 50px; cursor: pointer; text-align: center; color: inherit; border: 2px solid rgba(255,255,255,0.2); }
+            .avatar:empty::before{ content: '?'; font-size: 32px; }
+            #main { height: 80vh; }
+
+            .slide-panel {
+                position: absolute; top: calc(100% + 0.25rem); right: 0; left: auto;
+                width: 220px; max-height: 0; overflow: hidden;
+                background: var(--bs-body-bg); border: 1px solid transparent;
+                border-radius: var(--bs-border-radius); box-shadow: none; padding: 0;
+                visibility: hidden; pointer-events: none; z-index: 1050;
+                transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.2s ease, padding 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, visibility 0s 0.2s;
+            }
+            .slide-panel.show {
+                max-height: 300px; padding: 0.75rem;
+                border-color: var(--bs-border-color); box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+                visibility: visible; pointer-events: auto; transition-delay: 0s;
+            }
+            @media(max-width: 900px){ .slide-panel{ width: 100vw; right: -1rem; } }
+
+            #themeChange{ display: flex; align-items: center; cursor: pointer; gap: 0; overflow: hidden; white-space: nowrap; }
+            #themeChange i{ opacity: 0; width: 0; padding: 0.4rem 0.6rem; cursor: pointer; border-radius: 25%; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); transform: scale(0.8); }
+            #themeChange .selected{ opacity: 1; width: auto; transform: scale(1); }
+            #themeChange:hover i{ opacity: 1; width: auto; transform: scale(1); }
+            #themeChange i:hover{ background-color: rgba(0,0,0,0.12); }
+            .dark-theme #themeChange i:hover{ background-color: rgba(255,255,255,0.15); }
+            #themeChange i:active{ transform: scale(0.9); }
+
+            .backdrop { display: none; }
+            .mobile-trigger { display: none; }
+
+            @media (max-width: 767.98px) {
+                .side-banner {
+                    position: fixed; top: 0; bottom: 0; width: 85%; max-width: 300px;
+                    z-index: 1040; height: 100vh !important;
+                    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+                    overflow: visible !important;
+                }
+                .side-banner.left { left: 0; transform: translateX(-100%); }
+                .side-banner.right { right: 0; transform: translateX(100%); }
+                .side-banner.open.left { transform: translateX(0); }
+                .side-banner.open.right { transform: translateX(0); }
+
+                .mobile-trigger {
+                    display: flex; position: absolute; top: 50%;
+                    width: 28px; height: 60px;
+                    background: rgba(128, 128, 128, 0.35);
+                    color: #fff; align-items: center; justify-content: center;
+                    cursor: pointer; z-index: 10;
+                    backdrop-filter: blur(3px);
+                    transition: background 0.2s;
+                }
+                .mobile-trigger:hover { background: rgba(128, 128, 128, 0.65); }
+
+                .side-banner.left .mobile-trigger {
+                    right: 0; transform: translateY(-50%) translateX(100%);
+                    border-radius: 0 8px 8px 0;
+                }
+                .side-banner.right .mobile-trigger {
+                    left: 0; transform: translateY(-50%) translateX(-100%);
+                    border-radius: 8px 0 0 8px;
+                }
+
+                .backdrop {
+                    display: block; position: fixed; inset: 0;
+                    background: rgba(0,0,0,0.5); z-index: 1030;
+                    opacity: 0; pointer-events: none; transition: opacity 0.3s;
+                }
+                .backdrop.active { opacity: 1; pointer-events: auto; }
+            }
+        </style>
+        {% block extra_style %}{% endblock %}
     </head>
-    <body>
-        {% block content %}
-        {% endblock %}
+    <body class="dark-theme d-flex flex-column min-vh-100">
+        <div id="app" class="d-flex flex-column flex-grow-1">
+            <div class="backdrop" :class="{active: leftPanelOpen || rightPanelOpen}" @click="closeAll"></div>
+
+            <nav class="navbar bg-2 rounded m-2 position-relative" id="nav">
+                <div class="container-fluid">
+                    <a class="navbar-brand fw-bold" href="#">LOGO</a>
+                    <div class="justify-content-end d-flex gap-3 align-items-center" id="navMenu">
+                        <div class="rounded-5 border border-2 p-1" id="themeChange">
+                            <i class="fa-solid fa-sun" :class="{selected: theme === 'light'}" @click="setTheme('light')"></i>
+                            <i class="fa-solid fa-moon" :class="{selected: theme === 'dark'}" @click="setTheme('dark')"></i>
+                            <i class="fa-solid fa-desktop" :class="{selected: theme === 'system'}" @click="setTheme('system')"></i>
+                        </div>
+                        <div class="navbar-nav position-relative">
+                            <div class="nav-item" id="avatar-btn" v-if="is_loggined" @click="menuToggle">
+                                <div class="avatar bg-1 fg-5"></div>
+                            </div>
+                            <div class="nav-item d-flex align-items-center">
+                                <div class="btn fw-bold" v-if="!is_loggined" @click="signin">sign in</div>
+                                <div class="btn fw-bold" v-if="!is_loggined" @click="signup">sign up</div>
+                            </div>
+                            <div class="slide-panel bg-4 fg-4" id="menu">
+                                <div class="d-flex justify-content-between" v-if="is_loggined">
+                                    <div><p class="fs-5 fw-bold">[[user.sfp]]</p><p class="text-secondary">@[[user.username]]</p></div>
+                                    <div><p class="fs-5"><i class="fa-solid fa-gears"></i></p><p class="fs-5" @click="logout"><i class="fa-solid fa-right-from-bracket"></i></p></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="container-fluid position-relative flex-grow-1">
+                <div class="row gx-2 h-100">
+                    <div class="col-2 d-none d-md-block" v-if="showLeftBanner">
+                        <div class="bg-5 rounded text-center overflow-auto h-100">{% block Left %}{% endblock %}</div>
+                    </div>
+                    <div class="col-2 d-none d-md-block" v-else></div>
+
+                    <div class="side-banner left bg-5 rounded text-center d-md-none" :class="{open: leftPanelOpen}" v-if="showLeftBanner">
+                        <div class="mobile-trigger" @click="toggleLeft">
+                            <i class="fa-solid" :class="{'fa-chevron-right': !leftPanelOpen, 'fa-chevron-left': leftPanelOpen}"></i>
+                        </div>
+                        <div class="p-4 mt-5">{% block LeftMobile %}{% endblock %}</div>
+                    </div>
+
+                    <div class="col-12 col-md-8 position-relative">
+                        <div class="bg-5 rounded text-center overflow-auto" id="main">
+                            <p class="mt-5">{% block Main %}{% endblock %}</p>
+                        </div>
+                    </div>
+
+                    <div class="col-2 d-none d-md-block" v-if="showRightBanner">
+                        <div class="bg-5 rounded text-center overflow-auto h-100">{% block Right %}{% endblock %}</div>
+                    </div>
+                    <div class="col-2 d-none d-md-block" v-else></div>
+
+                    <div class="side-banner right bg-5 rounded text-center d-md-none" :class="{open: rightPanelOpen}" v-if="showRightBanner">
+                        <div class="mobile-trigger" @click="toggleRight">
+                            <i class="fa-solid" :class="{'fa-chevron-left': !rightPanelOpen, 'fa-chevron-right': rightPanelOpen}"></i>
+                        </div>
+                        <div class="p-4 mt-5">{% block RightMobile %}{% endblock %}</div>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="text-center py-3 mt-auto">
+                <small class="d-block" :class="footerTextColor">
+                    &copy; [[license.year]] [[license.owner]]. Licensed under [[license.name]].
+                </small>
+            </footer>
+        </div>
     </body>
     <script>
-      get = (i)=>document.getElementById(i);
-      {% block js_after %}{% endblock %}
+        const { createApp, ref, computed, watch, onMounted, onUnmounted } = Vue;
+        const get = (id) => document.getElementById(id);
+
+        const app = createApp({
+            setup(){
+                initAuth();
+                const user = ref();
+                const is_loggined = computed(() => !!user.value);
+
+                const showLeftBanner = ref(true);
+                const showRightBanner = ref(true);
+
+                const license = ref({
+                    name: "MIT",
+                    owner: "arynneyne, kycothekDamkrata",
+                    year: new Date().getFullYear()
+                });
+
+                const leftPanelOpen = ref(false);
+                const rightPanelOpen = ref(false);
+
+                const theme = ref(localStorage.getItem('app-theme') || 'system');
+                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+                const footerTextColor = computed(() => {
+                    return (theme.value === 'system' ? mediaQuery.matches : theme.value === 'dark') ? 'fg-4' : 'fg-3';
+                });
+
+                watch(showLeftBanner, (val) => { if(!val) leftPanelOpen.value = false; });
+                watch(showRightBanner, (val) => { if(!val) rightPanelOpen.value = false; });
+
+                const toggleLeft = () => {
+                    if(!showLeftBanner.value) return;
+                    leftPanelOpen.value = !leftPanelOpen.value;
+                    rightPanelOpen.value = false;
+                };
+                const toggleRight = () => {
+                    if(!showRightBanner.value) return;
+                    rightPanelOpen.value = !rightPanelOpen.value;
+                    leftPanelOpen.value = false;
+                };
+                const closeAll = () => { leftPanelOpen.value = false; rightPanelOpen.value = false; };
+
+                const applyTheme = () => {
+                    let actual = theme.value === 'system' ? (mediaQuery.matches ? 'dark' : 'light') : theme.value;
+                    document.body.className = `${actual}-theme d-flex flex-column min-vh-100`;
+                    localStorage.setItem('app-theme', theme.value);
+                };
+                const setTheme = (t) => { theme.value = t; applyTheme(); };
+                const handleSystemChange = () => { if(theme.value === 'system') applyTheme(); };
+
+                onMounted(() => {
+                    applyTheme();
+                    mediaQuery.addEventListener('change', handleSystemChange);
+                    document.addEventListener('click', (e) => {
+                        const menu = get('menu');
+                        const avatarBtn = get('avatar-btn');
+                        if (menu && avatarBtn && !avatarBtn.contains(e.target) && !menu.contains(e.target)) menu.classList.remove('show');
+                    });
+                });
+                onUnmounted(() => mediaQuery.removeEventListener('change', handleSystemChange));
+                {% block vue %}
+                {% endblock %}
+                return {
+                    user, is_loggined, theme, setTheme,
+                    license, footerTextColor,
+                    showLeftBanner, showRightBanner,
+                    leftPanelOpen, rightPanelOpen, toggleLeft, toggleRight, closeAll,
+                    signin(){
+                      window.location.href = '/user/auth';
+                    },
+                    signup(){
+                      window.location.href = '/user/auth';
+                    },
+                    logout(){
+                      fetch('/user/logout')
+                        .then(d=>d.json())
+                        .then(r=>{
+                          if(r.ok){
+                            user.value = null;
+                            get('menu').classList.remove('show');
+                          }
+                        });
+                    },
+                    menuToggle(){ get('menu').classList.toggle('show'); },
+                    {% block return_vue %}{% endblock %}
+                }
+            }
+        });
+        app.config.compilerOptions.delimiters = ['[[', ']]'];
+        app.mount('#app');
     </script>
 </html>

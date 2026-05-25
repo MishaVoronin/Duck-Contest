@@ -55,11 +55,3 @@ function handlePostLoginRedirect() {
     window.location.href = next;
   }
 }
-async function loadProfile() {
-  const res = await fetch("/user/me", {
-    method: "POST",
-    credentials: "include",
-  });
-  if (res.ok) return await res.json();
-}
-initAuth();

@@ -37,6 +37,11 @@ async def login(
     return await user_service.login_user(db, data)
 
 
+@router.get("/auth")
+async def auth(req: Request):
+    return templates.TemplateResponse(request=req, name='user/auth.html')
+
+
 @router.post("/logout")
 async def logout(request: Request, db: AsyncSession = Depends(get_db)):
     return await user_service.logout_user(request, db)

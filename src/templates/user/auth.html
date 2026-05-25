@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+<!--ИИ-->
+{% block title %}Authentication{% endblock %}
+
+{% block extra_style %}
+<style>
+    html, body { overflow: hidden !important; height: 100vh !important; }
+    #app, .flex-grow-1, .container-fluid, .row.gx-2.h-100 { height: 100% !important; }
+
+    #main {
+        height: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        overflow: visible !important;
+    }
+    #main > p {
+        margin: 0 !important;
+        padding: 0 !important;
+        height: 100% !important;
+        width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+</style>
+{% endblock %}
+
+{% block vue %}
+                showLeftBanner.value = false;
+                showRightBanner.value = false;
+
+                const authMode = ref('login');
+                const authError = ref(null);
+                const authLoading = ref(false);
+                const form = ref({ name: '', SFP: '', login: '', password: '' });
+
+                const toggleAuthMode = () => {
+                    authMode.value = authMode.value === 'login' ? 'register' : 'login';
+                    authError.value = null;
+                    form.value = { name: '', SFP: '', login: '', password: '' };
+                };
+
+                const submitAuth = async (endpoint) => {
+                    authError.value = null;
+                    authLoading.value = true;
+                    try {
+                        const payload = authMode.value === 'login'
+                            ? { login: form.value.login, password: form.value.password }
+                            : { name: form.value.name, SFP: form.value.SFP || null, login: form.value.login, password: form.value.password };
+
+                        const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                        const data = await res.json();
+                        if (data.ok) { user.value = data.user; window.location.href = '/'; }
+                        else { authError.value = data.detail || data.error || 'Authentication failed'; }
+                    } catch (e) { authError.value = 'Network error'; }
+                    finally { authLoading.value = false; }
+                };
+
+                const submitLogin = () => submitAuth('/user/login');
+                const submitRegister = () => submitAuth('/user/register');
+{% endblock %}
+
+{% block return_vue %}
+                    authMode, authError, authLoading, form, toggleAuthMode, submitLogin, submitRegister,
+{% endblock %}
+
+{% block Left %}{% endblock %}
+{% block LeftMobile %}{% endblock %}
+{% block Right %}{% endblock %}
+{% block RightMobile %}{% endblock %}
+
+{% block Main %}
+<div class="card bg-5 border-0 shadow-lg rounded-4" style="max-width: 420px; width: 100%;">
+    <div class="card-body p-4 p-md-5">
+        <div class="text-center mb-4">
+            <h3 class="fw-bold fg-2">[[authMode === 'login' ? 'Welcome Back' : 'Create Account']]</h3>
+            <p class="text-secondary small">[[authMode === 'login' ? 'Sign in to continue' : 'Join us today']]</p>
+        </div>
+
+        <div v-if="authError" class="alert alert-danger bg-3 fg-2 border-0 small py-2 mb-3">
+            <i class="fa-solid fa-circle-exclamation me-1"></i> [[authError]]
+        </div>
+
+        <form @submit.prevent="authMode === 'login' ? submitLogin() : submitRegister()" class="needs-validation" novalidate>
+            <div v-if="authMode === 'register'">
+                <div class="mb-3">
+                    <label class="form-label small fg-3">Name <span class="fg-4">(5-25, a-z/A-Z/0-9/-/_)</span></label>
+                    <input type="text" class="form-control bg-4 fg-2 border-0" v-model="form.name" placeholder="my_name" pattern="^[0-9a-zA-Z\-_]{5,25}$" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fg-3">SFP <span class="fg-4">(optional)</span></label>
+                    <input type="text" class="form-control bg-4 fg-2 border-0" v-model="form.SFP" placeholder="Display name" pattern="^[0-9a-zA-Z\-_]{5,25}$">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small fg-3">Login <span class="fg-4">(10-50 chars)</span></label>
+                <input type="text" class="form-control bg-4 fg-2 border-0" v-model="form.login" placeholder="Enter your login" minlength="10" maxlength="50" required>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label small fg-3">Password <span class="fg-4">(10-50 chars)</span></label>
+                <input type="password" class="form-control bg-4 fg-2 border-0" v-model="form.password" placeholder="••••••••••" minlength="10" maxlength="50" required>
+            </div>
+
+            <button type="submit" class="btn bg-1 fg-2 w-100 fw-bold py-2 mb-3" :disabled="authLoading">
+                <span v-if="authLoading"><i class="fa-solid fa-spinner fa-spin me-2"></i>Processing...</span>
+                <span v-else>[[authMode === 'login' ? 'Sign In' : 'Sign Up']]</span>
+            </button>
+        </form>
+
+        <div class="text-center small">
+            <span class="fg-4">[[authMode === 'login' ? "Don't have an account?" : "Already have an account?"]] </span>
+            <a href="#" class="fg-1 fw-bold text-decoration-none" @click.prevent="toggleAuthMode">
+                [[authMode === 'login' ? 'Sign Up' : 'Sign In']]
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
